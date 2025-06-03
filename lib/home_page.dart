@@ -55,7 +55,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final titleFontSize = screenWidth > 600 ? 64.0 : 36.0; // ✅ 桌機大字，手機小字
+    final titleFontSize = screenWidth > 690 ? 64.0 : 36.0; // ✅ 桌機大字，手機小字
     final buttonStyle = ElevatedButton.styleFrom(
       backgroundColor: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 16),
