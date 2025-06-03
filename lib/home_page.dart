@@ -74,7 +74,7 @@ class _HomePageState extends State<HomePage> {
           // 背景圖可改為雲朵、漸層等
           Positioned.fill(
             child: Image.asset(
-              'bg_main.png', // 選用 Q 版背景圖（或可移除這行保留純色）
+              'assets/bg_main.png',
               fit: BoxFit.cover,
             ),
           ),
