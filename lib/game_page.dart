@@ -107,7 +107,7 @@ class _GamePageState extends State<GamePage> {
       await _bossBgmPlayer.stop(); // ⛑ 保險起見
       await _bossBgmPlayer.setReleaseMode(ReleaseMode.loop);
       await _bossBgmPlayer.play(
-        AssetSource('assets/sounds/boss_battle.mp3'),
+        AssetSource('sounds/boss_battle.mp3'),
         volume: 0.5,
       );
     } catch (e) {
