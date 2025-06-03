@@ -55,7 +55,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final titleFontSize = screenWidth > 700 ? 64.0 : 36.0; // ✅ 桌機大字，手機小字
     final buttonStyle = ElevatedButton.styleFrom(
       backgroundColor: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -98,31 +97,34 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // 🌟 標題
-                      Stack(
-                        children: [
-                          Text(
-                            '🌟 MATH CLASH 🌟',
-                            style: TextStyle(
-                              fontSize: titleFontSize,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
-                              foreground: Paint()
-                                ..style = PaintingStyle.stroke
-                                ..strokeWidth = 6
-                                ..color = Colors.white,
-                            ),
+                    FittedBox(
+                    fit: BoxFit.scaleDown, // ⬅️ 讓內容自動縮小以符合寬度
+                    child: Stack(
+                      children: [
+                        Text(
+                          '🌟 MATH CLASH 🌟',
+                          style: TextStyle(
+                            fontSize: 64, // 設最大字體，FittedBox 會自動縮小
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                            foreground: Paint()
+                              ..style = PaintingStyle.stroke
+                              ..strokeWidth = 6
+                              ..color = Colors.white,
                           ),
-                          Text(
-                            '🌟 MATH CLASH 🌟',
-                            style: TextStyle(
-                              fontSize: titleFontSize,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
-                              color: Colors.deepPurple[800],
-                            ),
+                        ),
+                        Text(
+                          '🌟 MATH CLASH 🌟',
+                          style: TextStyle(
+                            fontSize: 64,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                            color: Colors.deepPurple[800],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
+                    ),
+                  ),
                       const SizedBox(height: 8),
                       // 💰 金幣
                       Container(
