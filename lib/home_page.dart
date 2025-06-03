@@ -54,6 +54,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final titleFontSize = screenWidth > 600 ? 64.0 : 36.0; // ✅ 桌機大字，手機小字
     final buttonStyle = ElevatedButton.styleFrom(
       backgroundColor: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -65,8 +67,9 @@ class _HomePageState extends State<HomePage> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFCF8FF), // Q版紫粉底色
-      body: Stack(
+        backgroundColor: const Color(0xFFFCF8FF),
+    body: SafeArea( // ✅ 加這一層
+      child: Stack(
         children: [
           // 背景圖可改為雲朵、漸層等
           Positioned.fill(
@@ -80,70 +83,74 @@ class _HomePageState extends State<HomePage> {
           Positioned(top: 50, right: 20, child: Icon(Icons.account_circle, size: 50, color: Colors.grey[400])),
 
           // 中心主體內容
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 36.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-              Stack(
-              children: [
-              // 底層：描邊效果（粗字、白色）
-              Text(
-              '🌟 MATH CLASH 🌟',
-                style: TextStyle(
-                  fontSize: 64,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                  foreground: Paint()
-                    ..style = PaintingStyle.stroke
-                    ..strokeWidth = 6
-                    ..color = Colors.white, // 👈 邊框顏色
+      LayoutBuilder(
+        builder: (context, constraints) {
+          return Align(
+            alignment: Alignment.topCenter,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 36.0, vertical: 20),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
                 ),
-              ),
-              // 上層：內部實心字
-              Text(
-                '🌟 MATH CLASH 🌟',
-                style: TextStyle(
-                  fontSize: 64,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                  color: Colors.deepPurple[800], // 👈 內部填色
-                ),
-              ),
-              ],
-            ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.amber[100],
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.amber.shade700),
-                    ),
-                    child: Text(
-                      '💰 金幣：$coins',
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
+                child: IntrinsicHeight( // ✅ 讓內容可自動置中
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 🌟 標題
+                      Stack(
+                        children: [
+                          Text(
+                            '🌟 MATH CLASH 🌟',
+                            style: TextStyle(
+                              fontSize: titleFontSize,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2,
+                              foreground: Paint()
+                                ..style = PaintingStyle.stroke
+                                ..strokeWidth = 6
+                                ..color = Colors.white,
+                            ),
+                          ),
+                          Text(
+                            '🌟 MATH CLASH 🌟',
+                            style: TextStyle(
+                              fontSize: titleFontSize,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2,
+                              color: Colors.deepPurple[800],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // 💰 金幣
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.amber[100],
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.amber.shade700),
+                        ),
+                        child: Text(
+                          '💰 金幣：$coins',
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      // 🧮 選單按鈕
+                      ..._buildMenuButtons(buttonStyle),
+                    ],
                   ),
-                  const SizedBox(height: 40),
-                  ..._buildMenuButtons(buttonStyle),
-                ],
+                ),
               ),
             ),
-          ),
-
-          // 右下角版號
-          Positioned(
-            bottom: 12,
-            right: 12,
-            child: Text(
-              'v1.0.0',
-              style: TextStyle(color: Colors.grey[500], fontSize: 12),
-            ),
-          ),
-        ],
+          );
+        },
       ),
+    ],
+    ),
+    ),
     );
   }
 
