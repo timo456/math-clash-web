@@ -113,23 +113,28 @@ class _HomePageState extends State<HomePage> {
 
   Future<String> _getAIReply(String message) async {
     final response = await http.post(
-      Uri.parse('https://your-proxy.up.railway.app/ask'), // ← 換成你的 proxy server 網址
+      Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': 'Bearer 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', // ⬅️ 改成你的金鑰
       },
       body: jsonEncode({
-        'question': message, // 只送問題，不送金鑰
+        'model': 'llama3-8b-8192',
+        'messages': [
+          {'role': 'system', 'content': '你是一位數學師父，語氣睿智簡潔，請用繁體中文回答玩家的問題。'},
+          {'role': 'user', 'content': message},
+        ],
       }),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(utf8.decode(response.bodyBytes));
-      return data['reply']; // 對應 server 回傳的格式
+      final decoded = utf8.decode(response.bodyBytes); // ✅ 強制用 UTF-8 解碼
+      final data = jsonDecode(decoded);
+      return data['choices'][0]['message']['content'];
     } else {
-      throw Exception('Proxy 回應錯誤: ${response.statusCode}');
+      throw Exception('Groq 回應錯誤: ${response.statusCode}');
     }
   }
-
 
 
 
