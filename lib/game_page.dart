@@ -212,6 +212,14 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _loadScore() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      score = prefs.getInt('score') ?? 0;
+    });
+  }
+
+
   Future<void> _loadDifficulty() async {
     final prefs = await SharedPreferences.getInstance();
     String difficulty = prefs.getString('difficulty') ?? '中等';
@@ -228,6 +236,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     super.initState();
     bossMusicPlayed = false; // ✅ 重置
     _loadSelectedCharacter();
+    _loadScore(); // ✅ 加這一行
     _startGameLoop();
     _generateScatterOffsets();
     _loadShopEffects();
@@ -382,7 +391,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
         for (var gate in gates) {
           gate.y += fallSpeed;
 
-          if (!gate.used && !bossBattle) {
+          if (!gate.used && !enemyAppeared) {
             for (final pos in peoplePositions) {
               final screenWidth = MediaQuery.of(context).size.width;
               final screenHeight = MediaQuery.of(context).size.height;
@@ -436,7 +445,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                 }
 
 
-                score = people * 160;
+                score += gate.value * 160;
 
                 _generateScatterOffsets();
                 break;
@@ -517,17 +526,23 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     int attackPower = powerUp ? 2 : 1; // ✅ 攻擊道具生效時 *2
 
     Timer.periodic(Duration(milliseconds: 300), (timer) {
-      if (bossHP <= 0 || people <= 0) {
+      if (people <= 0) {
         timer.cancel();
-
-        if (people <= 0) {
-          finished = true;
-          _showGateMessage('⚠️ 全滅！遊戲即將結束');
-        }
-
+        finished = true;
+        _showGateMessage('⚠️ 全滅！遊戲即將結束');
         Future.delayed(const Duration(seconds: 1), _finishGame);
         return;
       }
+
+      if (bossHP <= 0) {
+        timer.cancel();
+        // ✅ 不跳結束畫面，改為進下一關
+        level++;
+        score += 1000;
+        Future.delayed(const Duration(milliseconds: 500), _finishGame);
+        return;
+      }
+
       setState(() {
         bossHP -= attackPower;
         people--;
@@ -557,6 +572,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
         flyingTicks.add(0);
       });
     });
+
   }
 
 
@@ -566,97 +582,92 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     moveTimer?.cancel();
     _stopBossBattleMusic();
 
-    final prefs = await SharedPreferences.getInstance(); // ✅ 這裡
+    final prefs = await SharedPreferences.getInstance();
     String difficulty = prefs.getString('difficulty') ?? '中等';
 
-    if (bossHP <= 0) {
-      _playVoice('win.mp3');
-
-      setState(() {
-        level++;
-        score += 1000;
-
-        applyDifficultySetting(difficulty); // ✅ 第三步，重設 roundCounts、bossHP 等
-        people = min(people + 5, 20); // ✅ 補一點人數
-
-        backgroundOffset = 0;
-        gates.clear();
-        generatedGateBlock = 0;
-
-        bossBattle = false;
-        preBattle = false;
-        attackStarted = false;
-        enemyAppeared = false;
-        enemyY = -1.2;
-        circleOffsetY = 160.0;
-        playerX = -0.045;
-
-        flyingPeople.clear();
-        flyingTicks.clear();
-        finished = false;
-        bossMusicPlayed = false;
-
-        _generateScatterOffsets();
-
-        levelMessage = '🎯 第 $level 關開始！';
-        levelMessageTimer?.cancel();
-        levelMessageTimer = Timer(Duration(seconds: 2), () {
-          if (mounted) {
-            setState(() {
-              levelMessage = '';
-            });
-          }
-        });
-      });
-
-      // ✅ 重啟 moveTimer 和 gameLoop
-      moveTimer = Timer.periodic(const Duration(milliseconds: 30), (_) {
-        if (targetPosition != null && !preBattle) {
-          double volume = _calculateWalkVolume();
-          if (_walkPlayer.state != PlayerState.playing) {
-            _startWalkingSound(volume);
-          } else {
-            _walkPlayer.setVolume(volume);
-          }
-
-          double screenWidth = MediaQuery.of(context).size.width;
-          double screenHeight = MediaQuery.of(context).size.height;
-          double newTargetX = (targetPosition!.dx / screenWidth) * 2 - 1.0;
-          newTargetX = newTargetX.clamp(-10.0, 10.0);
-          double dx = targetPosition!.dx - screenWidth / 2;
-          double dy = targetPosition!.dy - (screenHeight - 100);
-
-          setState(() {
-            double moveSpeed = speedBoost ? 0.16 : 0.08;
-            playerX += (newTargetX - playerX) * moveSpeed;
-            facingLeft = dx < 0;
-            playerAngle = atan2(dy, dx);
-          });
-        }
-      });
-
-      _startGameLoop();
+    // ✅ 唯一結束條件：人數歸零
+    if (people <= 0) {
+      _playVoice('fail.mp3');
+      await prefs.remove('score');
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          transitionDuration: Duration(milliseconds: 800),
+          pageBuilder: (_, __, ___) => ResultPage(
+            player: people,
+            blood: bossHP,
+            win: false,
+            score: score,
+          ),
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      );
       return;
     }
 
-    // ⛔ 若失敗則跳到結果畫面
-    _playVoice('fail.mp3');
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        transitionDuration: Duration(milliseconds: 800),
-        pageBuilder: (_, __, ___) => ResultPage(
-          player: people,
-          blood: bossHP,
-          win: false,
-          score: score,
-        ),
-        transitionsBuilder: (_, animation, __, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-      ),
-    );
+    // ✅ 若 Boss 被打敗且人還活著 → 進下一關（繼續遊戲）
+    _playVoice('win.mp3');
+    await prefs.setInt('score', score);
+
+    setState(() {
+      applyDifficultySetting(difficulty);
+      people = min(people + 5, 20);
+      backgroundOffset = 0;
+      gates.clear();
+      generatedGateBlock = 0;
+      bossBattle = false;
+      preBattle = false;
+      attackStarted = false;
+      enemyAppeared = false;
+      enemyY = -1.2;
+      circleOffsetY = 160.0;
+      playerX = -0.045;
+      flyingPeople.clear();
+      flyingTicks.clear();
+      finished = false;
+      bossMusicPlayed = false;
+      _generateScatterOffsets();
+      levelMessage = '🎯 第 $level 關開始！';
+      levelMessageTimer?.cancel();
+      levelMessageTimer = Timer(Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            levelMessage = '';
+          });
+        }
+      });
+    });
+
+    moveTimer = Timer.periodic(const Duration(milliseconds: 30), (_) {
+      if (targetPosition != null && !preBattle) {
+        double volume = _calculateWalkVolume();
+        if (_walkPlayer.state != PlayerState.playing) {
+          _startWalkingSound(volume);
+        } else {
+          _walkPlayer.setVolume(volume);
+        }
+
+        double screenWidth = MediaQuery.of(context).size.width;
+        double screenHeight = MediaQuery.of(context).size.height;
+        double newTargetX = (targetPosition!.dx / screenWidth) * 2 - 1.0;
+        newTargetX = newTargetX.clamp(-10.0, 10.0);
+        double dx = targetPosition!.dx - screenWidth / 2;
+        double dy = targetPosition!.dy - (screenHeight - 100);
+
+        setState(() {
+          double moveSpeed = speedBoost ? 0.16 : 0.08;
+          playerX += (newTargetX - playerX) * moveSpeed;
+          facingLeft = dx < 0;
+          playerAngle = atan2(dy, dx);
+        });
+      }
+    });
+
+    _startGameLoop();
   }
+
 
 
 
