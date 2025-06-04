@@ -9,6 +9,10 @@ import 'game_page.dart';
 import 'guide_page.dart';
 import 'leaderboard_page.dart';
 import 'settings_page.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'dart:convert'; // 要確保有 import
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -39,6 +43,99 @@ class _HomePageState extends State<HomePage> {
       coins = coin;
     });
   }
+
+  void _showMasterDialog() {
+    TextEditingController _questionController = TextEditingController();
+    String? reply;
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('🧙 師父說：'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _questionController,
+                    decoration: const InputDecoration(
+                      hintText: '請輸入你的問題（例如：什麼是質數？）',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: null,
+                  ),
+                  const SizedBox(height: 12),
+                  if (isLoading)
+                    const CircularProgressIndicator()
+                  else if (reply != null)
+                    Text(reply!, style: const TextStyle(fontSize: 16)),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    final question = _questionController.text.trim();
+                    if (question.isEmpty) return;
+                    setState(() {
+                      isLoading = true;
+                      reply = null;
+                    });
+                    try {
+                      final result = await _getAIReply(question);
+                      setState(() {
+                        reply = result;
+                        isLoading = false;
+                      });
+                    } catch (e) {
+                      setState(() {
+                        reply = '出錯了：$e';
+                        isLoading = false;
+                      });
+                    }
+                  },
+                  child: const Text('請示 🧠'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('謝謝師父 🙏'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+
+  Future<String> _getAIReply(String message) async {
+    final response = await http.post(
+      Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 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', // ⬅️ 改成你的金鑰
+      },
+      body: jsonEncode({
+        'model': 'llama3-8b-8192',
+        'messages': [
+          {'role': 'system', 'content': '你是一位數學師父，語氣睿智簡潔，請用繁體中文回答玩家的問題。'},
+          {'role': 'user', 'content': message},
+        ],
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = utf8.decode(response.bodyBytes); // ✅ 強制用 UTF-8 解碼
+      final data = jsonDecode(decoded);
+      return data['choices'][0]['message']['content'];
+    } else {
+      throw Exception('Groq 回應錯誤: ${response.statusCode}');
+    }
+  }
+
 
 
   Future<void> _playClickSound() async {
@@ -150,7 +247,45 @@ class _HomePageState extends State<HomePage> {
           );
         },
       ),
-    ],
+          // AI 師父按鈕（右下角）
+          Positioned(
+            bottom: 30,
+            right: 20,
+            child: GestureDetector(
+              onTap: _showMasterDialog,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple[700],
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(2, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🧙', style: TextStyle(fontSize: 24)),
+                    const SizedBox(width: 8),
+                    Text(
+                      '請示師父',
+                      style: TextStyle(
+                        color: Colors.amber[100],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          ),
+
+        ],
     ),
     ),
     );
@@ -166,6 +301,7 @@ class _HomePageState extends State<HomePage> {
       "商店",
       "音效設定"
     ];
+
 
     return labels.map((label) {
       return Padding(
