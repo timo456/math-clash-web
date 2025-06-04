@@ -73,6 +73,7 @@ flutter:
     - assets/sounds/fail.mp3
     - assets/sounds/run.mp3
     - assets/sounds/boss_battle.mp3
+    - assets/sounds/hit.mp3
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

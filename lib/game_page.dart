@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'result_page.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart'; // for kIsWeb
+import 'package:flutter/services.dart';   // for HapticFeedback
 
 
 
@@ -81,6 +83,8 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   String levelMessage = '';
   Timer? levelMessageTimer;
 
+  double targetAngle = 0.0;
+
 
   double _calculateWalkVolume() {
     // 最大音量為 1.0，最小為 0.1
@@ -92,6 +96,14 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     double ratio = people / maxPeople;
     ratio = ratio.clamp(0.0, 1.0); // 限制在 0~1 範圍
     return minVolume + (maxVolume - minVolume) * ratio;
+  }
+
+  void triggerFeedback() {
+    if (kIsWeb) {
+      _voicePlayer.play(AssetSource('sounds/hit.mp3'), volume: 0.4);
+    } else {
+      HapticFeedback.mediumImpact(); // 或 heavyImpact()
+    }
   }
 
   void _showGateMessage(String message) {
@@ -272,10 +284,14 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
         double dy = targetPosition!.dy - (screenHeight - 100);
 
         setState(() {
-          double moveSpeed = speedBoost ? 0.16 : 0.08; // ⚡ 道具加速
-          playerX += (newTargetX - playerX) * moveSpeed;
-          facingLeft = dx < 0;
-          playerAngle = atan2(dy, dx);
+          double distance = (newTargetX - playerX).abs();
+          double baseSpeed = speedBoost ? 0.16 : 0.08;
+
+          // 根據距離增加速度（最小 0.08，最大 0.25）
+          double dynamicSpeed = (baseSpeed + distance * 0.15).clamp(0.08, 0.25);
+          playerX += (newTargetX - playerX) * dynamicSpeed;
+          facingLeft = cos(playerAngle) < 0;
+          targetAngle = atan2(dy, dx);
         });
       }
     });
@@ -373,6 +389,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     double fallSpeed = speedBoost ? 0.035 : 0.025;
     gameTimer = Timer.periodic(Duration(milliseconds: 50), (_) {
       setState(() {
+        playerAngle += (targetAngle - playerAngle) * 0.15;
         frameTick++;
         if (frameTick % 6 == 0) {
           runFrame = (runFrame + 1) % 2;
@@ -404,6 +421,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
               if (pos.dx >= gateLeft && pos.dx <= gateRight &&
                   pos.dy >= gateTop && pos.dy <= gateBottom) {
                 gate.used = true;
+                triggerFeedback(); // ✅ 加上這行
 
                 if (gate.op == '+') {
                   people += gate.value;
@@ -662,8 +680,8 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
         setState(() {
           double moveSpeed = speedBoost ? 0.16 : 0.08;
           playerX += (newTargetX - playerX) * moveSpeed;
-          facingLeft = dx < 0;
-          playerAngle = atan2(dy, dx);
+          facingLeft = cos(playerAngle) < 0;
+          targetAngle = atan2(dy, dx);
         });
       }
     });
