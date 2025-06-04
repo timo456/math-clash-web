@@ -235,6 +235,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     bossMusicPlayed = false; // ✅ 重置
+    levelMessageTimer?.cancel(); // 防止疊加
     _loadSelectedCharacter();
     _loadScore(); // ✅ 加這一行
     _startGameLoop();
@@ -340,7 +341,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
 
     _generateOpsWeighted();
 
-    double baseY = -1.0 - blockIndex * 0.8;
+    double baseY = -1.4 - blockIndex * 0.8;
 
 
     // 隨機從 opsWeighted 抽出一個左門符號
@@ -445,7 +446,9 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                 }
 
 
-                score += gate.value * 160;
+                if (gate.op != '?') {
+                  score += gate.value * 160;
+                }
 
                 _generateScatterOffsets();
                 break;
@@ -544,7 +547,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
       }
 
       setState(() {
-        bossHP -= attackPower;
+        bossHP = max(0, bossHP - attackPower);
         people--;
         people = max(0, people); // 保護人數不會負數
         _playVoice('attack.mp3'); // 👉 加這行
@@ -697,7 +700,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    double bossSize = 100.0 + level * 10; // 每關 Boss 越來越大
+    double bossSize = 90.0 + level * 10; // 每關 Boss 越來越大
     return Scaffold(
       backgroundColor: Colors.white,
       body: GestureDetector(
