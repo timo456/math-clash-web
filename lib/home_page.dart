@@ -116,7 +116,7 @@ class _HomePageState extends State<HomePage> {
       Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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', // ⬅️ 改成你的金鑰
+        'Authorization': 'Bearer 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', // ⬅️ 改成你的金鑰
       },
       body: jsonEncode({
         'model': 'llama3-8b-8192',
