@@ -31,7 +31,7 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   double playerX = 0;
   int people = 10;
-  late int score;
+  int score = 0;
   int level = 1;
   double backgroundOffset = 0;
   Timer? gameTimer;
@@ -239,17 +239,28 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     final prefs = await SharedPreferences.getInstance();
     String difficulty = prefs.getString('difficulty') ?? '中等';
 
+    // 🟡 讀取 SharedPreferences 中的 level
+    int storedLevel = prefs.getInt('level') ?? 1;
+
     setState(() {
+      level = storedLevel;
       applyDifficultySetting(difficulty);
+
+      if (level == 1) {
+        score = 0; // ✅ 只有第一關才歸零
+      } else {
+        score = prefs.getInt('score') ?? 0; // ✅ 否則讀回存下來的分數
+      }
     });
   }
+
+
 
 
 
   @override
   void initState() {
     super.initState();
-    score = widget.initialScore;
     bossMusicPlayed = false; // ✅ 重置
     levelMessageTimer?.cancel(); // 防止疊加
     _loadSelectedCharacter();

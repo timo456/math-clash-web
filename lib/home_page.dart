@@ -314,7 +314,14 @@ class _HomePageState extends State<HomePage> {
               await _playClickSound();
 
               if (label == "開始遊戲") {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const GamePage(initialScore: 0)));
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setInt('level', 1);
+                await prefs.setInt('score', 0);
+
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const GamePage()),
+                );
               } else if (label == "音效設定") {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
               } else if (label == "難度選擇") {
