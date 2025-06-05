@@ -3,6 +3,8 @@ import 'package:math_clash/score_firestore.dart';
 import 'home_page.dart';
 import 'coin_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class ResultPage extends StatefulWidget {
   final int player;
@@ -26,11 +28,42 @@ class _ResultPageState extends State<ResultPage> {
   final TextEditingController _nameController = TextEditingController();
   int storedScore = 0;
   int levelReached = 1;
+  String aiReply = '分析中...';
 
   @override
   void initState() {
     super.initState();
     _loadStoredData();
+    _getAIReply(); // 👈 加這行
+  }
+
+  Future<void> _getAIReply() async {
+    final response = await http.post(
+      Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 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',
+      },
+      body: jsonEncode({
+        'model': 'llama3-8b-8192',
+        'messages': [
+          {'role': 'system', 'content': '你是一位數學師父，簡潔的嘲諷玩家的得分表現，用現代一點的嘲諷方式，請用繁體中文。'},
+          {'role': 'user', 'content': '我剛剛在遊戲中得到了 ${widget.score} 分，你覺得表現如何？'},
+        ],
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = utf8.decode(response.bodyBytes);
+      final data = jsonDecode(decoded);
+      setState(() {
+        aiReply = data['choices'][0]['message']['content'];
+      });
+    } else {
+      setState(() {
+        aiReply = '⚠️ AI 無法回應（${response.statusCode}）';
+      });
+    }
   }
 
   Future<void> _loadStoredData() async {
@@ -141,6 +174,18 @@ class _ResultPageState extends State<ResultPage> {
                 onPressed: _clearRecord,
                 icon: const Icon(Icons.delete_forever, color: Colors.red),
                 label: const Text('刪除紀錄', style: TextStyle(color: Colors.red)),
+              ),
+              const SizedBox(height: 30),
+              const Divider(height: 20, thickness: 1),
+              const Text(
+                '🤖 AI 評論',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                aiReply,
+                style: TextStyle(fontSize: 16),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
