@@ -490,8 +490,9 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
           final screenHeight = MediaQuery.of(context).size.height;
 
           // 🔼 讓 boss 停在圈圈中心「上方」
-          double offsetAbove = 40.0;
-          double targetEnemyY = (screenHeight - (circleOffsetY + offsetAbove)) / (screenHeight / 2) - 1.0;
+          double bossSize = 90.0 + level * 10;
+          double offsetAbove = (bossSize * 0.6).clamp(40.0, 120.0);
+          double targetEnemyY = (screenHeight - (circleOffsetY + offsetAbove)) / (screenHeight / 2) - 1.0+ 0.04;
 
           if(preBattle == false){
             enemyY += 0.01;
@@ -738,7 +739,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
             // 背景捲動
             ...List.generate(3, (i) {
               return Positioned(
-                top: (i * 600.0 - (backgroundOffset * 600) % 600),
+                top: (i * 600.0 + (backgroundOffset * 600) % 600) - 600.0,
                 left: 0,
                 right: 0,
                 child: Image.asset(
