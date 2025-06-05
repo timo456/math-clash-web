@@ -209,20 +209,21 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     if (difficulty == '簡單') {
       people = 20;
       roundCounts = 7;
-      bossHP = 15 - extraHP;
-      maxBossHP = 15 - extraHP;
+      bossHP = (15 + (level - 1) * 2) - extraHP;
+      maxBossHP = bossHP;
     } else if (difficulty == '中等') {
       people = 10;
       roundCounts = 6;
-      bossHP = 25 - extraHP;
-      maxBossHP = 25 - extraHP;
+      bossHP = (25 + (level - 1) * 3) - extraHP;
+      maxBossHP = bossHP;
     } else if (difficulty == '困難') {
       people = 7;
       roundCounts = 5;
-      bossHP = 35 - extraHP;
-      maxBossHP = 35 - extraHP;
+      bossHP = (35 + (level - 1) * 4) - extraHP;
+      maxBossHP = bossHP;
     }
   }
+
 
   Future<void> _loadScore() async {
     final prefs = await SharedPreferences.getInstance();
@@ -444,12 +445,11 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                 } else if (gate.op == '?') {
                   int randomEffect = Random().nextInt(4);
                   if (randomEffect == 0) {
-                    people = Random().nextInt(50) + 1;
+                    people = Random().nextInt(100) + 1;
                     _showGateMessage('🎯 隨機人數！$people人');
                   } else if (randomEffect == 1) {
-                    people = 0;
-                    people = max(0, people); // ✅ 加這行（雖然已經是 0，為了統一）
-                    _showGateMessage('💣 陷阱！全滅！');
+                    people = 1;
+                    _showGateMessage('💣 陷阱！倖存1人！');
                   } else if (randomEffect == 2) {
                     score += 500;
                     _showGateMessage('🎁 獎勵分數 +500！');
@@ -709,6 +709,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   void dispose() {
     gameTimer?.cancel();       // ✅ 清除 Timer
     moveTimer?.cancel();       // ✅ 如果還有控制移動的 Timer
+    gateMessageTimer?.cancel();
     levelMessageTimer?.cancel(); // ✅ 新增這行
     _walkPlayer.dispose();     // ✅ 停止走路聲播放器
     _bossBgmPlayer.dispose(); // ✅ 別忘了這行
