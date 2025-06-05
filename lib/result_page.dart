@@ -135,7 +135,7 @@ class _ResultPageState extends State<ResultPage> {
           title: const Text('🎮 結果畫面'),
           automaticallyImplyLeading: false,
         ),
-        body: Padding(
+        body: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -204,6 +204,7 @@ class _ResultPageState extends State<ResultPage> {
             ],
           ),
         ),
+
       ),
     );
   }
