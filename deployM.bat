@@ -4,6 +4,7 @@ git branch
 git checkout main
 git add .
 git commit -m "✨ 修改遊戲邏輯與畫面文字"
+git pull --rebase origin main
 git push origin main
 
 echo 🏗️ 建置 Flutter Web...
