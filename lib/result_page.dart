@@ -42,13 +42,13 @@ class _ResultPageState extends State<ResultPage> {
     int score = widget.score;
 
     if (score < 5000) {
-      tone += '，語氣請加倍嘲諷，毫不留情地挖苦玩家的表現，請用繁體中文';
-    } else if (score < 8000) {
-      tone += '，語氣請微酸嘲諷，類似老師失望又無奈的感覺，請用繁體中文';
-    } else if (score < 10000) {
-      tone += '，語氣請高傲，帶點勉強稱讚，但別讓玩家太得意，請用繁體中文';
+      tone += '，語氣請加倍嘲諷，毫不留情地挖苦玩家的表現，用中文回答-繁體中文';
+    } else if (score < 1000) {
+      tone += '，語氣請微酸嘲諷，類似老師失望又無奈的感覺，用中文回答-繁體中文';
+    } else if (score < 20000) {
+      tone += '，語氣請高傲，帶點勉強稱讚，但別讓玩家太得意，用中文回答-繁體中文';
     } else {
-      tone += '，語氣請自豪又霸氣，好像自己教出來的高徒終於有點樣子，請用繁體中文';
+      tone += '，語氣請自豪又霸氣，好像自己教出來的高徒終於有點樣子，用中文回答-繁體中文';
     }
 
     final response = await http.post(
