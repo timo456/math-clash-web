@@ -19,7 +19,9 @@ class Gate {
 }
 
 class GamePage extends StatefulWidget {
-  const GamePage({super.key});
+  final int initialScore;
+
+  const GamePage({super.key, this.initialScore = 0});
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -29,7 +31,7 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   double playerX = 0;
   int people = 10;
-  int score = 0;
+  late int score;
   int level = 1;
   double backgroundOffset = 0;
   Timer? gameTimer;
@@ -247,6 +249,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    score = widget.initialScore;
     bossMusicPlayed = false; // ✅ 重置
     levelMessageTimer?.cancel(); // 防止疊加
     _loadSelectedCharacter();
