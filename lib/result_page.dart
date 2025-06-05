@@ -38,6 +38,19 @@ class _ResultPageState extends State<ResultPage> {
   }
 
   Future<void> _getAIReply() async {
+    String tone = '你是一位數學師父，用現代網路上常用的話語';
+    int score = widget.score;
+
+    if (score < 5000) {
+      tone += '，語氣請加倍嘲諷，毫不留情地挖苦玩家的表現，請用繁體中文';
+    } else if (score < 8000) {
+      tone += '，語氣請微酸嘲諷，類似老師失望又無奈的感覺，請用繁體中文';
+    } else if (score < 10000) {
+      tone += '，語氣請高傲，帶點勉強稱讚，但別讓玩家太得意，請用繁體中文';
+    } else {
+      tone += '，語氣請自豪又霸氣，好像自己教出來的高徒終於有點樣子，請用繁體中文';
+    }
+
     final response = await http.post(
       Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
       headers: {
@@ -47,8 +60,8 @@ class _ResultPageState extends State<ResultPage> {
       body: jsonEncode({
         'model': 'llama3-8b-8192',
         'messages': [
-          {'role': 'system', 'content': '你是一位數學師父，簡潔的嘲諷玩家的得分表現，用現代一點的嘲諷方式，請用繁體中文。'},
-          {'role': 'user', 'content': '我剛剛在遊戲中得到了 ${widget.score} 分，你覺得表現如何？'},
+          {'role': 'system', 'content': tone},
+          {'role': 'user', 'content': '我剛剛在遊戲中得到了 $score 分，你覺得表現如何？'},
         ],
       }),
     );
@@ -65,6 +78,7 @@ class _ResultPageState extends State<ResultPage> {
       });
     }
   }
+
 
   Future<void> _loadStoredData() async {
     final prefs = await SharedPreferences.getInstance();
