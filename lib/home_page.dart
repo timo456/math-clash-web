@@ -138,7 +138,7 @@ class _HomePageState extends State<HomePage> {
       body: jsonEncode({
         'model': 'llama3-8b-8192',
         'messages': [
-          {'role': 'system', 'content': '你是一位數學師父，語氣睿智簡潔，請用繁體中文回答。'},
+          {'role': 'system', 'content': '你是一位數學師父，語氣睿智簡潔，請用(繁體中文)。'},
           {'role': 'user', 'content': message},
         ],
       }),
