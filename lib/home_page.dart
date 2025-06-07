@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:math_clash/shop_page.dart';
@@ -22,6 +23,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  String displayName = '';
+  String? avatarUrl;
+  String roleName = '未選角色';
   int coins = 0;
   final AudioPlayer _sfxPlayer = AudioPlayer();
 
@@ -35,7 +39,20 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadCoins();
+    _loadUserInfo(); // ⬅️ 加這行
   }
+
+  Future<void> _loadUserInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      displayName = user?.displayName ?? prefs.getString('nickname') ?? '匿名玩家';
+      avatarUrl = user?.photoURL;
+      roleName = prefs.getString('selectedRole') ?? '未選角色';
+    });
+  }
+
 
   Future<void> _loadCoins() async {
     final coin = await CoinHelper.getCoins(); // ⬅️ 使用 CoinHelper
@@ -176,7 +193,36 @@ class _HomePageState extends State<HomePage> {
           ),
 
           // 頭像 or 裝飾
-          Positioned(top: 50, right: 20, child: Icon(Icons.account_circle, size: 50, color: Colors.grey[400])),
+          // 🔄 個人化帳號區塊（右上角）
+          Positioned(
+            top: 30,
+            right: 20,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (avatarUrl != null)
+                      CircleAvatar(
+                        backgroundImage: NetworkImage(avatarUrl!),
+                        radius: 20,
+                      )
+                    else
+                      const CircleAvatar(
+                        radius: 20,
+                        child: Icon(Icons.person),
+                      ),
+                    const SizedBox(width: 8),
+                    Text(
+                      displayName,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
 
           // 中心主體內容
       LayoutBuilder(

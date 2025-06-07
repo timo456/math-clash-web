@@ -87,6 +87,11 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
 
   double targetAngle = 0.0;
 
+  bool isFastForward = false;
+
+  Timer? attackTimer;
+
+
 
   double _calculateWalkVolume() {
     // 最大音量為 1.0，最小為 0.1
@@ -559,9 +564,10 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   }
 
   void _startPeopleAttack() {
+    attackTimer?.cancel();
     int attackPower = powerUp ? 2 : 1; // ✅ 攻擊道具生效時 *2
 
-    Timer.periodic(Duration(milliseconds: 300), (timer) {
+    attackTimer = Timer.periodic(Duration(milliseconds: isFastForward ? 150 : 300), (timer) {
       if (people <= 0) {
         timer.cancel();
         finished = true;
@@ -729,6 +735,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     _walkPlayer.dispose();     // ✅ 停止走路聲播放器
     _bossBgmPlayer.dispose(); // ✅ 別忘了這行
     _gateColorController.dispose(); // ✅ 記得關閉動畫
+    attackTimer?.cancel(); // ✅ 清除攻擊 Timer
     super.dispose();
   }
 
@@ -935,7 +942,33 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-
+            if (bossBattle && !finished)
+              Positioned(
+                right: 20,
+                bottom: 20,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      isFastForward = !isFastForward;
+                      _startPeopleAttack(); // 重啟攻擊 Timer
+                    });
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isFastForward ? Colors.orange : Colors.grey[800],
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(blurRadius: 4, color: Colors.black26),
+                      ],
+                    ),
+                    child: Text(
+                      isFastForward ? '⏩ 加速中' : '▶️ 加速',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
