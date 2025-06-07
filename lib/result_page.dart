@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:math_clash/score_firestore.dart';
 import 'home_page.dart';
 import 'coin_helper.dart';
@@ -25,7 +26,6 @@ class ResultPage extends StatefulWidget {
 }
 
 class _ResultPageState extends State<ResultPage> {
-  final TextEditingController _nameController = TextEditingController();
   int storedScore = 0;
   int levelReached = 1;
   String aiReply = '分析中...';
@@ -34,7 +34,7 @@ class _ResultPageState extends State<ResultPage> {
   void initState() {
     super.initState();
     _loadStoredData();
-    _getAIReply(); // 👈 加這行
+    _getAIReply();
   }
 
   Future<void> _getAIReply() async {
@@ -43,7 +43,7 @@ class _ResultPageState extends State<ResultPage> {
 
     if (score < 5000) {
       tone += '，語氣請加倍嘲諷，毫不留情地挖苦玩家的表現，用中文回答-繁體中文';
-    } else if (score < 1000) {
+    } else if (score < 10000) {
       tone += '，語氣請微酸嘲諷，類似老師失望又無奈的感覺，用中文回答-繁體中文';
     } else if (score < 20000) {
       tone += '，語氣請高傲，帶點勉強稱讚，但別讓玩家太得意，用中文回答-繁體中文';
@@ -55,7 +55,7 @@ class _ResultPageState extends State<ResultPage> {
       Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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',
+        'Authorization': 'Bearer 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', // ⚠️ 請保護金鑰
       },
       body: jsonEncode({
         'model': 'llama3-8b-8192',
@@ -79,7 +79,6 @@ class _ResultPageState extends State<ResultPage> {
     }
   }
 
-
   Future<void> _loadStoredData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -99,7 +98,6 @@ class _ResultPageState extends State<ResultPage> {
       const SnackBar(content: Text('🗑️ 紀錄已清除')),
     );
 
-    // 延遲一點點給使用者看到提示再跳轉
     await Future.delayed(const Duration(milliseconds: 800));
 
     Navigator.of(context).pushReplacement(
@@ -107,9 +105,9 @@ class _ResultPageState extends State<ResultPage> {
     );
   }
 
-
   void _saveAndBack() async {
-    final name = _nameController.text.trim().isEmpty ? '無名玩家' : _nameController.text;
+    final user = FirebaseAuth.instance.currentUser;
+    final name = user?.displayName ?? '無名玩家';
 
     try {
       await ScoreFirestore.insertScore(name, widget.score);
@@ -165,14 +163,6 @@ class _ResultPageState extends State<ResultPage> {
                 ],
               ),
               const Divider(height: 40, thickness: 2),
-              TextField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: '👤 請輸入你的名字',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 20),
               ElevatedButton.icon(
                 onPressed: _saveAndBack,
                 icon: const Icon(Icons.save),
@@ -204,7 +194,6 @@ class _ResultPageState extends State<ResultPage> {
             ],
           ),
         ),
-
       ),
     );
   }
