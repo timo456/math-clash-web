@@ -66,24 +66,29 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _signInWithGoogle() async {
     setState(() => _loading = true);
+
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) {
-        setState(() => _loading = false);
-        return;
+      if (kIsWeb) {
+        // ✅ 網頁平台用 redirect（會跳去 Google，再回來）
+        final provider = GoogleAuthProvider();
+        await FirebaseAuth.instance.signInWithRedirect(provider);
+      } else {
+        // ✅ 手機或桌面平台用 GoogleSignIn 套件
+        final googleUser = await GoogleSignIn().signIn();
+        final googleAuth = await googleUser?.authentication;
+        if (googleAuth == null) return;
+
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        await FirebaseAuth.instance.signInWithCredential(credential);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
       }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(credential);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Google 登入失敗：$e')),
@@ -92,6 +97,7 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _loading = false);
     }
   }
+
 
   Future<void> _signInAnonymously() async {
     setState(() {
