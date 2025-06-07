@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -12,6 +13,7 @@ class LeaderboardPage extends StatefulWidget {
 class _LeaderboardPageState extends State<LeaderboardPage> {
   String searchName = '';
   final TextEditingController _searchController = TextEditingController();
+
 
   String _formatTimestamp(Timestamp? timestamp) {
     if (timestamp == null) return '';
@@ -30,6 +32,112 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
         return '#${rank + 1}';
     }
   }
+
+  void _showAllCommentsDialog(BuildContext context, String scoreId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('所有留言'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: FutureBuilder<QuerySnapshot>(
+            future: FirebaseFirestore.instance
+                .collection('scores')
+                .doc(scoreId)
+                .collection('comments')
+                .orderBy('timestamp', descending: true)
+                .get(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Text('💬 尚無留言');
+              }
+
+              final comments = snapshot.data!.docs;
+
+              return ListView.builder(
+                shrinkWrap: true,
+                itemCount: comments.length,
+                itemBuilder: (context, index) {
+                  final comment = comments[index];
+                  final uid = FirebaseAuth.instance.currentUser?.uid;
+                  final isMe = comment['uid'] == uid;
+                  final avatarUrl = comment['avatar'];
+                  final userName = comment['user'] ?? '匿名';
+                  final time = (comment['timestamp'] as Timestamp?)?.toDate();
+                  final timeStr = time != null ? DateFormat('MM/dd HH:mm').format(time) : '';
+
+                  return Row(
+                    mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                    children: [
+                      if (!isMe)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundImage: avatarUrl != null
+                                ? NetworkImage(avatarUrl)
+                                : null,
+                            child: avatarUrl == null ? const Icon(Icons.person) : null,
+                          ),
+                        ),
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 260),
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isMe ? Colors.green[100] : Colors.blue[50],
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(12),
+                            topRight: const Radius.circular(12),
+                            bottomLeft: Radius.circular(isMe ? 12 : 0),
+                            bottomRight: Radius.circular(isMe ? 0 : 12),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text(comment['text'] ?? ''),
+                            const SizedBox(height: 4),
+                            Text(
+                              '🕒 $timeStr',
+                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isMe)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundImage: avatarUrl != null
+                                ? NetworkImage(avatarUrl)
+                                : null,
+                            child: avatarUrl == null ? const Icon(Icons.person) : null,
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('關閉'),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   void _showCommentDialog(BuildContext context, String scoreId) {
     final TextEditingController _commentController = TextEditingController();
@@ -51,6 +159,14 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
           ElevatedButton(
             onPressed: () async {
               final text = _commentController.text.trim();
+              final user = FirebaseAuth.instance.currentUser;
+              final isAnon = user?.isAnonymous ?? true;
+              final userName = user?.displayName ?? '匿名';
+              final userPhoto = isAnon
+                  ? null
+                  : user?.photoURL;
+
+
               if (text.isNotEmpty) {
                 await FirebaseFirestore.instance
                     .collection('scores')
@@ -58,6 +174,9 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                     .collection('comments')
                     .add({
                   'text': text,
+                  'user': userName,
+                  'avatar': userPhoto,
+                  'uid': user?.uid, // ✅ 加上這行
                   'timestamp': Timestamp.now(),
                 });
                 Navigator.pop(context);
@@ -183,6 +302,11 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                               icon: const Icon(Icons.add_comment),
                               label: const Text('留言'),
                               onPressed: () => _showCommentDialog(context, doc.id),
+                            ),
+                            TextButton.icon(
+                              icon: const Icon(Icons.chat),
+                              label: const Text('查看所有留言'),
+                              onPressed: () => _showAllCommentsDialog(context, doc.id),
                             ),
                             FutureBuilder<QuerySnapshot>(
                               future: FirebaseFirestore.instance

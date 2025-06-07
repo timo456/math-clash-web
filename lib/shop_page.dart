@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'coin_helper.dart';
 
 class ShopPage extends StatefulWidget {
@@ -14,8 +15,8 @@ class _ShopPageState extends State<ShopPage> {
   final descriptions = ['小人移動速度加快', 'Boss 戰多撐 5 擊', '攻擊力乘2'];
   int coins = 100;
   static const itemCost = 30;
-  List<int> purchaseCounts = [0, 0, 0]; // 與 items 對應
-  List<bool> active = [false, false, false]; // 每個道具是否啟用
+  List<int> purchaseCounts = [0, 0, 0];
+  List<bool> active = [false, false, false];
 
   @override
   void initState() {
@@ -25,31 +26,28 @@ class _ShopPageState extends State<ShopPage> {
 
   Future<void> _loadShopData() async {
     final prefs = await SharedPreferences.getInstance();
+    final updatedCoins = await CoinHelper.getCoins();
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? 'guest';
+
     setState(() {
-      coins = prefs.getInt('coins') ?? 100;
+      coins = updatedCoins;
       for (int i = 0; i < items.length; i++) {
-        purchaseCounts[i] = prefs.getInt('count_$i') ?? 0;
-      }
-      for (int i = 0; i < items.length; i++) {
-        purchaseCounts[i] = prefs.getInt('count_$i') ?? 0;
-        active[i] = prefs.getBool('active_$i') ?? false;
+        purchaseCounts[i] = prefs.getInt('count_${i}_$uid') ?? 0;
+        active[i] = prefs.getBool('active_${i}_$uid') ?? false;
       }
     });
   }
 
-
   Future<void> _buyItem(int index) async {
     bool success = await CoinHelper.spendCoins(itemCost);
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? 'guest';
 
     if (success) {
       final prefs = await SharedPreferences.getInstance();
-
-      // 增加購買次數
-      int currentCount = prefs.getInt('count_$index') ?? 0;
+      int currentCount = prefs.getInt('count_${index}_$uid') ?? 0;
       currentCount++;
-      await prefs.setInt('count_$index', currentCount);
+      await prefs.setInt('count_${index}_$uid', currentCount);
 
-      // 更新本地顯示
       setState(() {
         coins -= itemCost;
         purchaseCounts[index] = currentCount;
@@ -64,8 +62,6 @@ class _ShopPageState extends State<ShopPage> {
       );
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +123,7 @@ class _ShopPageState extends State<ShopPage> {
                                         value: active[index],
                                         onChanged: (value) async {
                                           final prefs = await SharedPreferences.getInstance();
+                                          final uid = FirebaseAuth.instance.currentUser?.uid ?? 'guest';
                                           if (value && purchaseCounts[index] == 0) {
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               const SnackBar(content: Text('❌ 數量不足，無法啟用')),
@@ -134,7 +131,7 @@ class _ShopPageState extends State<ShopPage> {
                                             return;
                                           }
                                           setState(() => active[index] = value);
-                                          await prefs.setBool('active_$index', value);
+                                          await prefs.setBool('active_${index}_$uid', value);
                                         },
                                       ),
                                     ],
