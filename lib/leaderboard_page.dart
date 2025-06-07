@@ -31,6 +31,46 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     }
   }
 
+  void _showCommentDialog(BuildContext context, String scoreId) {
+    final TextEditingController _commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('新增留言'),
+        content: TextField(
+          controller: _commentController,
+          maxLines: 3,
+          decoration: const InputDecoration(hintText: '輸入你的留言'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final text = _commentController.text.trim();
+              if (text.isNotEmpty) {
+                await FirebaseFirestore.instance
+                    .collection('scores')
+                    .doc(scoreId)
+                    .collection('comments')
+                    .add({
+                  'text': text,
+                  'timestamp': Timestamp.now(),
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('送出'),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,22 +147,61 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                       color: isMatch ? Colors.amber[100] : null, // 搜尋到的高亮
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.indigoAccent,
-                          child: Text(
-                            _getMedalEmoji(index),
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                        title: Text(
-                          name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text('時間：$time'),
-                        trailing: Text(
-                          '$score 分',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: Colors.indigoAccent,
+                                  child: Text(
+                                    _getMedalEmoji(index),
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                      Text('時間：$time'),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  '$score 分',
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // 🔽 下一步會加入這區：顯示留言 +
+                            TextButton.icon(
+                              icon: const Icon(Icons.add_comment),
+                              label: const Text('留言'),
+                              onPressed: () => _showCommentDialog(context, doc.id),
+                            ),
+                            FutureBuilder<QuerySnapshot>(
+                              future: FirebaseFirestore.instance
+                                  .collection('scores')
+                                  .doc(doc.id)
+                                  .collection('comments')
+                                  .orderBy('timestamp', descending: true)
+                                  .limit(1)
+                                  .get(),
+                              builder: (context, commentSnap) {
+                                if (!commentSnap.hasData || commentSnap.data!.docs.isEmpty) {
+                                  return const Text('💬 暫無留言');
+                                }
+                                final latestComment = commentSnap.data!.docs.first['text'] ?? '';
+                                return Text('💬 留言：$latestComment');
+                              },
+                            ),
+
+                          ],
                         ),
                       ),
                     );
