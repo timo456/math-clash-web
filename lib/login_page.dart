@@ -23,7 +23,36 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _loadSavedNickname();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        // ✅ 已登入，就直接跳 Home
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      } else if (kIsWeb) {
+        // ✅ Web 平台再檢查 redirect 回來的登入結果
+        try {
+          final result = await FirebaseAuth.instance.getRedirectResult();
+          if (result.user != null) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomePage()),
+            );
+          }
+        } catch (e) {
+          debugPrint('🔴 redirect 登入錯誤: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('登入後導回失敗：$e')),
+          );
+        }
+      }
+    });
   }
+
 
   void _loadSavedNickname() async {
     final prefs = await SharedPreferences.getInstance();
@@ -168,23 +197,19 @@ class _LoginPageState extends State<LoginPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
-                      onPressed: () async {
-                        setState(() => _loading = true);
-                        try {
-                          final provider = GoogleAuthProvider();
-                          await FirebaseAuth.instance.signInWithPopup(provider);
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (_) => const HomePage()),
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Google 登入失敗：$e')),
-                          );
-                        } finally {
-                          setState(() => _loading = false);
-                        }
-                      },
+                        onPressed: () async {
+                          setState(() => _loading = true);
+                          try {
+                            final provider = GoogleAuthProvider();
+                            await FirebaseAuth.instance.signInWithRedirect(provider);
+                            // ❌ 不要加 Navigator.pushReplacement()，redirect 後這裡不會執行
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Google 登入失敗：$e')),
+                            );
+                            setState(() => _loading = false); // 加在 catch 裡，因為 redirect 成功時頁面會跳走
+                          }
+                        },
                     ),
                   ],
                 ),
