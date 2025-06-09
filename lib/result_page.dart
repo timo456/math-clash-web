@@ -42,20 +42,19 @@ class _ResultPageState extends State<ResultPage> {
     int score = widget.score;
 
     if (score < 5000) {
-      tone += '，語氣請加倍嘲諷，毫不留情地挖苦玩家的表現，用中文回答-繁體中文';
+      tone += '，語氣請加倍嘲諷，毫不留情地挖苦玩家的表現，用繁體中文回答-繁體中文';
     } else if (score < 10000) {
-      tone += '，語氣請微酸嘲諷，類似老師失望又無奈的感覺，用中文回答-繁體中文';
+      tone += '，語氣請微酸嘲諷，類似老師失望又無奈的感覺，用繁體中文回答-繁體中文';
     } else if (score < 20000) {
-      tone += '，語氣請高傲，帶點勉強稱讚，但別讓玩家太得意，用中文回答-繁體中文';
+      tone += '，語氣請高傲，帶點勉強稱讚，但別讓玩家太得意，用繁體中文回答-繁體中文';
     } else {
       tone += '，語氣請自豪又霸氣，好像自己教出來的高徒終於有點樣子，用中文回答-繁體中文';
     }
 
     final response = await http.post(
-      Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
+      Uri.parse('https://groq-proxy-60d8.onrender.com/api/chat'),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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', // ⚠️ 請保護金鑰
       },
       body: jsonEncode({
         'model': 'llama3-8b-8192',
@@ -78,6 +77,7 @@ class _ResultPageState extends State<ResultPage> {
       });
     }
   }
+
 
   Future<void> _loadStoredData() async {
     final prefs = await SharedPreferences.getInstance();
