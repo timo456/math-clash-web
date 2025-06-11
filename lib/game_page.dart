@@ -70,6 +70,10 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   bool speedBoost = false;
   bool shield = false;
   bool powerUp = false;
+  bool superPowerUp = false; // 炸彈傷害 x3
+  bool luckyMode = false;    // 分數翻倍
+  bool controlInverted = false; // 反向操作
+
 
   final AudioPlayer _voicePlayer = AudioPlayer();
   final AudioPlayer _walkPlayer = AudioPlayer();
@@ -90,6 +94,21 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   bool isFastForward = false;
 
   Timer? attackTimer;
+
+  double superPowerAlpha = 1.0;
+
+  Color getPeopleColor(int count) {
+    if (count > 10000000) return Colors.deepPurpleAccent; // 💜 超載狀態
+    if (count > 1000000) return Colors.purpleAccent;      // 💟 紫色警告
+    if (count > 100000) return Colors.redAccent;         // 🔴 極高
+    if (count > 10000) return Colors.deepOrangeAccent;   // 🧡 非常多
+    if (count > 1000) return Colors.orangeAccent;       // 🟠 高人數
+    if (count > 500) return Colors.yellowAccent;       // 🟡 中高
+    if (count > 200) return Colors.lightGreenAccent;   // 🟢 達標
+    if (count > 100) return Colors.cyanAccent;         // 🔵 還行
+    if (count > 50) return Colors.lightBlueAccent;    // 🟦 一般
+    return Colors.white;                              // ⚪ 標準
+  }
 
 
 
@@ -231,6 +250,10 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     }
   }
 
+  void restartAttack() {
+    attackTimer?.cancel();
+    _startPeopleAttack();
+  }
 
   Future<void> _loadScore() async {
     final prefs = await SharedPreferences.getInstance();
@@ -287,14 +310,13 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
 
     moveTimer = Timer.periodic(const Duration(milliseconds: 30), (_) {
       if (targetPosition != null && !preBattle) {
-        if (targetPosition != null && !preBattle) {
           double volume = _calculateWalkVolume();
           if (_walkPlayer.state != PlayerState.playing) {
             _startWalkingSound(volume); // ✅ 傳入音量
           } else {
             _walkPlayer.setVolume(volume); // ✅ 動態調整音量
           }
-        }
+
 
         double screenWidth = MediaQuery.of(context).size.width;
         double screenHeight = MediaQuery.of(context).size.height;
@@ -462,7 +484,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                   people %= gate.value;
                   _showGateMessage('🧮 %${gate.value}！取餘數');
                 } else if (gate.op == '?') {
-                  int randomEffect = Random().nextInt(4);
+                  int randomEffect = Random().nextInt(7);
                   if (randomEffect == 0) {
                     people = Random().nextInt(100) + 1;
                     _showGateMessage('🎯 隨機人數！$people人');
@@ -480,11 +502,31 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                     });
                     _showGateMessage('🌀 角色變形！');
                   }
+                  else if (randomEffect == 4) {
+                    superPowerUp = true;
+                    _showGateMessage('💣 小人變成炸彈！攻擊x3');
+                  }
+                  else if (randomEffect == 5) {
+                    luckyMode = true;
+                    _showGateMessage('🍀 強運模式！10秒內分數x2');
+                    Timer(Duration(seconds: 10), () {
+                      if (mounted) setState(() => luckyMode = false);
+                    });
+                  }
+                  else if (randomEffect == 6) {
+                    controlInverted = true;
+                    _showGateMessage('🌀 控制顛倒！5秒後恢復');
+                    Timer(Duration(seconds: 5), () {
+                      if (mounted) setState(() => controlInverted = false);
+                    });
+                  }
+
                 }
 
 
                 if (gate.op != '?') {
-                  score += gate.value * 160;
+                  int base = gate.value * 160;
+                  score += luckyMode ? base * 2 : base;
                 }
 
                 _generateScatterOffsets();
@@ -513,14 +555,15 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
           double offsetAbove = (bossSize * 0.6).clamp(40.0, 120.0);
           double targetEnemyY = (screenHeight - (circleOffsetY + offsetAbove)) / (screenHeight / 2) - 1.0+ 0.04;
 
-          if(preBattle == false){
-            enemyY += 0.01;
-          }else{
-            if(enemyY < targetEnemyY ){
+          if (!preBattle) {
+            if (enemyY < targetEnemyY) {
               enemyY += 0.01;
-            }else{
+            }
+          } else {
+            if (enemyY < targetEnemyY) {
+              enemyY += 0.01;
+            } else {
               enemyY = targetEnemyY;
-              // 🔥✅ 加在這裡：敵人到位後啟動攻擊
               if (!attackStarted) {
                 bossBattle = true;
                 attackStarted = true;
@@ -564,12 +607,27 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   }
 
   void _startPeopleAttack() {
+    bool usedSuperPowerUp = false;
     attackTimer?.cancel();
-    int attackPower = powerUp ? 2 : 1; // ✅ 攻擊道具生效時 *2
+    int attackPower = 1;
+    if (powerUp) attackPower = 2;
+    if (superPowerUp) attackPower = 3;
+
 
     attackTimer = Timer.periodic(Duration(milliseconds: isFastForward ? 150 : 300), (timer) {
       if (people <= 0) {
         timer.cancel();
+        if (superPowerUp) {
+          setState(() => superPowerAlpha = 0.0); // 🔸 觸發淡出動畫
+          Future.delayed(Duration(milliseconds: 300), () {
+            if (mounted) {
+              setState(() {
+                superPowerUp = false;
+                superPowerAlpha = 1.0; // ✅ 下一輪還原為可用
+              });
+            }
+          });
+        }
         finished = true;
         _showGateMessage('⚠️ 全滅！遊戲即將結束');
         Future.delayed(const Duration(seconds: 1), _finishGame);
@@ -578,6 +636,12 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
 
       if (bossHP <= 0) {
         timer.cancel();
+        if (superPowerUp) {
+          superPowerAlpha = 0.0;
+          Future.delayed(Duration(milliseconds: 300), () {
+            if (mounted) setState(() => superPowerUp = false);
+          });
+        }
         // ✅ 不跳結束畫面，改為進下一關
         level++;
         score += 1000;
@@ -613,8 +677,8 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
         flyingPeople.add(Offset(centerX, centerY));
         flyingTicks.add(0);
       });
+      // ❗ 改在 setState 之後、加個延遲或動畫結束後
     });
-
   }
 
 
@@ -694,6 +758,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
         double screenWidth = MediaQuery.of(context).size.width;
         double screenHeight = MediaQuery.of(context).size.height;
         double newTargetX = (targetPosition!.dx / screenWidth) * 2 - 1.0;
+        if (controlInverted) newTargetX = -newTargetX;
         newTargetX = newTargetX.clamp(-10.0, 10.0);
         double dx = targetPosition!.dx - screenWidth / 2;
         double dy = targetPosition!.dy - (screenHeight - 100);
@@ -710,21 +775,6 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
     _startGameLoop();
   }
 
-
-
-
-
-  void moveLeft() {
-    setState(() {
-      playerX = -1;
-    });
-  }
-
-  void moveRight() {
-    setState(() {
-      playerX = 1;
-    });
-  }
 
   @override
   void dispose() {
@@ -866,6 +916,12 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                     _buildEffectBadge('🛡️護盾 +5'),
                   if (powerUp)
                     _buildEffectBadge('🔥攻擊x2'),
+                  if (superPowerUp)
+                    _buildEffectBadge('💣攻擊x3'),
+                  if (luckyMode)
+                    _buildEffectBadge('🍀分數x2'),
+                  if (controlInverted)
+                    _buildEffectBadge('🔄控制顛倒'),
                 ],
               ),
             ),
@@ -899,23 +955,29 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
             // 門提示訊息（右上角）
             if (gateMessage.isNotEmpty)
               Positioned(
-                top: 40,
-                right: 20,
-                child: AnimatedOpacity(
-                  opacity: gateMessage.isNotEmpty ? 1.0 : 0.0,
-                  duration: Duration(milliseconds: 300),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.75),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      gateMessage,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                top: 80, // ✅ 位置往下移
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: AnimatedOpacity(
+                    opacity: 1.0,
+                    duration: Duration(milliseconds: 300),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        gateMessage,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(blurRadius: 3, color: Colors.black, offset: Offset(1, 1)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -950,7 +1012,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                   onTap: () {
                     setState(() {
                       isFastForward = !isFastForward;
-                      _startPeopleAttack(); // 重啟攻擊 Timer
+                      restartAttack();
                     });
                   },
                   child: Container(
@@ -1148,12 +1210,45 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
           alignment: Alignment.center,
           transform: Matrix4.identity()..scale(cos(playerAngle) < 0 ? -1.0 : 1.0, 1.0),
           child: characterSelected
-              ? Icon(playerIcon, size: 40, color: playerColor)
+              ? (superPowerUp
+              ? AnimatedOpacity(
+            opacity: superPowerAlpha, // 🔸 你控制的透明度變數
+            duration: Duration(milliseconds: 300),
+            child: Icon(
+              Icons.brightness_high,
+              size: 40,
+              color: Colors.deepOrangeAccent,
+            ),
+          )
+              : Icon(playerIcon, size: 40, color: playerColor))
               : Stack(
             alignment: Alignment.center,
             children: [
-              Icon(runFrame == 0 ? Icons.directions_run : Icons.directions_walk, size: 42, color: Colors.black),
-              Icon(runFrame == 0 ? Icons.directions_run : Icons.directions_walk_outlined, size: 36, color: Colors.white),
+              superPowerUp
+                  ? AnimatedOpacity(
+                opacity: superPowerAlpha,
+                duration: Duration(milliseconds: 300),
+                child: Icon(
+                  Icons.brightness_high,
+                  size: 44,
+                  color: Colors.deepOrangeAccent,
+                ),
+              )
+                  : Icon(
+                runFrame == 0
+                    ? Icons.directions_run
+                    : Icons.directions_walk,
+                size: 42,
+                color: Colors.black,
+              ),
+              if (!superPowerUp)
+                Icon(
+                  runFrame == 0
+                      ? Icons.directions_run
+                      : Icons.directions_walk_outlined,
+                  size: 36,
+                  color: getPeopleColor(people), // ✅ 改這裡！
+                ),
             ],
           ),
         ),
@@ -1185,12 +1280,45 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
           alignment: Alignment.center,
           transform: Matrix4.identity()..scale(cos(playerAngle) < 0 ? -1.0 : 1.0, 1.0),
           child: characterSelected
-              ? Icon(playerIcon, size: 40, color: playerColor)
+              ? (superPowerUp
+              ? AnimatedOpacity(
+            opacity: superPowerAlpha, // 🔸 你控制的透明度變數
+            duration: Duration(milliseconds: 300),
+            child: Icon(
+              Icons.brightness_high,
+              size: 40,
+              color: Colors.deepOrangeAccent,
+            ),
+          )
+              : Icon(playerIcon, size: 40, color: playerColor))
               : Stack(
             alignment: Alignment.center,
             children: [
-              Icon(runFrame == 0 ? Icons.directions_run : Icons.directions_walk, size: 42, color: Colors.black),
-              Icon(runFrame == 0 ? Icons.directions_run : Icons.directions_walk_outlined, size: 36, color: Colors.white),
+              superPowerUp
+                  ? AnimatedOpacity(
+                opacity: superPowerAlpha,
+                duration: Duration(milliseconds: 300),
+                child: Icon(
+                  Icons.brightness_high,
+                  size: 44,
+                  color: Colors.deepOrangeAccent,
+                ),
+              )
+                  : Icon(
+                runFrame == 0
+                    ? Icons.directions_run
+                    : Icons.directions_walk,
+                size: 42,
+                color: Colors.black,
+              ),
+              if (!superPowerUp)
+                Icon(
+                  runFrame == 0
+                      ? Icons.directions_run
+                      : Icons.directions_walk_outlined,
+                  size: 36,
+                  color: getPeopleColor(people),
+                ),
             ],
           ),
         ),

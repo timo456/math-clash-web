@@ -38,7 +38,7 @@ class _ResultPageState extends State<ResultPage> {
   }
 
   Future<void> _getAIReply() async {
-    String tone = '你是一位數學師父，用現代網路上常用的話語';
+    String tone = '你是一位數學師父，用現代網路上常用的話語，用繁體中文回答-繁體中文';
     int score = widget.score;
 
     if (score < 5000) {
