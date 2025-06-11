@@ -172,14 +172,19 @@ class _LoginPageState extends State<LoginPage> {
                         setState(() => _loading = true);
                         try {
                           final provider = GoogleAuthProvider();
-                          await FirebaseAuth.instance.signInWithPopup(provider);
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (_) => const HomePage()),
-                          );
+                          final userCredential = await FirebaseAuth.instance.signInWithPopup(provider);
+                          if (userCredential.user != null) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => const HomePage()),
+                            );
+                          } else {
+                            throw Exception('未登入任何帳戶');
+                          }
                         } catch (e) {
+                          debugPrint('登入錯誤：$e');
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Google 登入失敗：$e')),
+                            SnackBar(content: Text('Google 登入失敗或已取消')),
                           );
                         } finally {
                           setState(() => _loading = false);

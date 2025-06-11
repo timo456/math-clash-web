@@ -830,14 +830,19 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
         },
         child: Stack(
           children: [
-            // 背景捲動
+            // 背景捲動（根據難度切換背景圖片）
             ...List.generate(3, (i) {
+              // scoreMultiplier >= 2.0 表示困難或以上
+              String bgImage = (scoreMultiplier >= 2.0)
+                  ? 'assets/road2.png'
+                  : 'assets/road.png';
+
               return Positioned(
                 top: (i * 600.0 + (backgroundOffset * 600) % 600) - 600.0,
                 left: 0,
                 right: 0,
                 child: Image.asset(
-                  'assets/road.png',
+                  bgImage,
                   height: 600,
                   fit: BoxFit.cover,
                 ),
