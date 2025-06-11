@@ -50,32 +50,37 @@ class GuidePage extends StatelessWidget {
             _infoCard(
               icon: Icons.swipe,
               title: '角色移動',
-              content: '透過手指滑動控制主角左右移動，選擇適合的數學閘門。',
+              content: '透過滑動螢幕控制主角左右移動，選擇最有利的數學閘門通過。',
             ),
             _infoCard(
-              icon: Icons.functions,
+              icon: Icons.calculate,
               title: '數學閘門',
-              content: '通過「+」、「×」等閘門來增加角色人數，越多角色越有利！',
+              content: '閘門包含 +、-、×、÷、^、%、? 等多種效果，會改變人數或造成隨機事件。',
             ),
             _infoCard(
-              icon: Icons.dangerous,
-              title: 'Boss 對決',
-              content: '通過跑道後角色會圍攻 Boss，依人數造成傷害，擊敗 Boss 才能過關。',
+              icon: Icons.sports_kabaddi,
+              title: 'Boss 圍攻',
+              content: '關卡尾端角色會自動包圍 Boss 並發動攻擊，角色越多傷害越高。',
+            ),
+            _infoCard(
+              icon: Icons.auto_awesome,
+              title: '特殊效果',
+              content: '隨機閘門 (?) 有機會觸發角色變形、炸彈、分數加倍、顛倒控制等特殊效果。',
             ),
             _infoCard(
               icon: Icons.store,
-              title: '強化道具',
-              content: '在商店中可購買速度提升、護盾（延長耐久）、火力加強（攻擊乘2）等能力。',
+              title: '商店道具',
+              content: '可購買速度提升、護盾（+5 血）、火力加倍（攻擊 x2），每局自動消耗一次。',
             ),
             _infoCard(
-              icon: Icons.leaderboard,
+              icon: Icons.trending_up,
+              title: '難度模式',
+              content: '提供簡單、中等、困難、地獄四種難度，Boss 血量與分數倍率會跟著提升。',
+            ),
+            _infoCard(
+              icon: Icons.emoji_events,
               title: '排行榜',
-              content: '每次過關後可以輸入暱稱上榜，挑戰最高分並跟好友比一比！',
-            ),
-            _infoCard(
-              icon: Icons.bolt,
-              title: '難度設定',
-              content: '可選擇簡單、中等、困難三種模式，Boss 血量會隨之變化挑戰性更高。',
+              content: '過關後可輸入暱稱上榜，與其他玩家一較高下，爭奪最高分紀錄！',
             ),
 
           ],

@@ -97,6 +97,8 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
 
   double superPowerAlpha = 1.0;
 
+  double scoreMultiplier = 1.0;
+
   Color getPeopleColor(int count) {
     if (count > 10000000) return Colors.deepPurpleAccent; // 💜 超載狀態
     if (count > 1000000) return Colors.purpleAccent;      // 💟 紫色警告
@@ -247,7 +249,14 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
       roundCounts = 5;
       bossHP = (35 + (level - 1) * 4) - extraHP;
       maxBossHP = bossHP;
+    } else if (difficulty == '地獄') {
+      people = 1;
+      roundCounts = 5;
+      bossHP = (50 + (level - 1) * 10) - extraHP;
+      maxBossHP = bossHP;
     }
+
+    _generateScatterOffsets(); //
   }
 
   void restartAttack() {
@@ -274,11 +283,24 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
       level = storedLevel;
       applyDifficultySetting(difficulty);
 
+      // ✅ 設定分數倍率
+      if (difficulty == '簡單') {
+        scoreMultiplier = 1.0;
+      } else if (difficulty == '中等') {
+        scoreMultiplier = 1.5;
+      } else if (difficulty == '困難') {
+        scoreMultiplier = 2.0;
+      } else if (difficulty == '地獄') {
+        scoreMultiplier = 5.0;
+      }
+
       if (level == 1) {
         score = 0; // ✅ 只有第一關才歸零
       } else {
         score = prefs.getInt('score') ?? 0; // ✅ 否則讀回存下來的分數
       }
+
+      _generateScatterOffsets(); // ✅ ← 加這行，才能同步顯示正確數量小人
     });
   }
 
@@ -526,7 +548,8 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
 
                 if (gate.op != '?') {
                   int base = gate.value * 160;
-                  score += luckyMode ? base * 2 : base;
+                  int addedScore = (base * scoreMultiplier).toInt();
+                  score += luckyMode ? addedScore * 2 : addedScore;
                 }
 
                 _generateScatterOffsets();
@@ -644,7 +667,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
         }
         // ✅ 不跳結束畫面，改為進下一關
         level++;
-        score += 1000;
+        score += (1000 * scoreMultiplier).toInt();
         Future.delayed(const Duration(milliseconds: 500), _finishGame);
         return;
       }
