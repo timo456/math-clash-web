@@ -559,7 +559,10 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
           }
         }
 
-
+        if (people > 0 && _scatterOffsets.isEmpty) {
+          print('⚠️ 手機上渲染異常，自動補回小人 offset');
+          _generateScatterOffsets();
+        }
 
         // ✅ 敵人登場（快結束時）
         if (backgroundOffset > roundCounts-0.5) {
@@ -1290,7 +1293,7 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
   List<Widget> _buildCirclePeople() {
     List<Widget> peopleWidgets = [];
     final screenWidth = MediaQuery.of(context).size.width;
-    int maxPeopleToShow = min(people, 50);
+    int maxPeopleToShow = min(people, 40);
 
     double centerX = (playerX + 1) * screenWidth / 2;
     double centerY = circleOffsetY;
